@@ -108,8 +108,21 @@ export function startBot() {
     return;
   }
   
-  client.login(token).catch(error => {
-    console.error('Failed to start Discord bot:', error);
+  console.log('Attempting to connect to Discord with provided token...');
+  
+  client.login(token).then(() => {
+    console.log(`Discord bot successfully connected as ${client.user?.tag}`);
+  }).catch(error => {
+    if (error.code === 'TokenInvalid') {
+      console.error('Invalid Discord Bot Token provided. Please check your DISCORD_BOT_TOKEN environment variable.');
+      console.error('You can obtain a valid token from the Discord Developer Portal: https://discord.com/developers/applications');
+    } else if (error.code === 'DisallowedIntents') {
+      console.error('Discord bot failed to start due to insufficient privileged intents.');
+      console.error('Please make sure privileged intents are enabled in the Discord Developer Portal for your bot.');
+    } else {
+      console.error('Failed to start Discord bot:', error);
+    }
+    
     // Set bot as ready even if login fails to allow dashboard to function
     isReady = true;
   });

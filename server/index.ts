@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startBot } from "./bot/index";
 
 const app = express();
 app.use(express.json());
@@ -66,5 +67,13 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start the Discord bot when the server starts
+    try {
+      startBot();
+      log("Discord bot started automatically");
+    } catch (error: any) {
+      log(`Failed to start Discord bot: ${error?.message || 'Unknown error'}`);
+    }
   });
 })();
