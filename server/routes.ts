@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from 'ws';
 import { z } from "zod";
 import { storage } from "./storage";
-import { startBot, stopBot, getBotStatus } from "./bot/index";
+import { startBot, stopBot, getBotStatus, client } from "./bot/index";
+import { GatewayIntentBits } from "discord.js";
 import { getAllCommands } from "./bot/commands";
 import { generateResponse, getOpenAIStatus } from "./bot/nlp";
 import { moderateUser } from "./bot/moderation";
@@ -64,8 +65,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const botStatus = getBotStatus();
     const openaiStatus = getOpenAIStatus();
     
+    // Check if the bot is running with full or limited permissions
+    const hasFullFunctionality = client.options.intents.has(GatewayIntentBits.MessageContent);
+    
+    // Enhanced bot status with functionality level
+    const enhancedBotStatus = {
+      ...botStatus,
+      functionality: hasFullFunctionality ? 'full' : 'limited',
+      limitations: hasFullFunctionality ? [] : [
+        'Cannot read message content',
+        'Cannot process commands automatically',
+        'Limited moderation capabilities'
+      ]
+    };
+    
     res.json({
-      bot: botStatus,
+      bot: enhancedBotStatus,
       nlp: {
         status: openaiStatus.status,
         message: openaiStatus.message,

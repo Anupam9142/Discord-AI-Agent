@@ -71,7 +71,9 @@ const BotStatusCard: React.FC = () => {
     }
   };
 
-  const isOnline = data?.status?.ready;
+  const isOnline = data?.bot?.ready;
+  const functionality = data?.bot?.functionality || 'unknown';
+  const limitations = data?.bot?.limitations || [];
   const cpuUsage = data?.systemInfo?.cpuUsage || 0;
   const memoryUsage = data?.systemInfo?.memoryUsage || 0;
   const apiRateLimit = data?.systemInfo?.apiRateLimit || 0;
