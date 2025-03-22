@@ -6,20 +6,29 @@ import { storage } from '../storage';
 // Initialize OpenAI client if API key exists, otherwise use a mock client
 let openai: OpenAI;
 let useOpenAI = true;
+let openAIInitStatus: 'ready' | 'fallback' | 'error' = 'error';
+let openAIErrorMessage = 'Not initialized';
 
 try {
   const apiKey = process.env.OPENAI_API_KEY;
   
   if (!apiKey || apiKey === 'mock-key' || apiKey.startsWith('sk-proj-')) {
     console.warn('Valid OpenAI API key not provided or using API key with insufficient quota');
-    throw new Error('Invalid API key or insufficient quota');
+    openAIErrorMessage = 'Invalid API key or insufficient quota';
+    throw new Error(openAIErrorMessage);
   }
   
   openai = new OpenAI({ apiKey });
   console.log('OpenAI client initialized successfully');
-} catch (error) {
+  openAIInitStatus = 'ready';
+} catch (error: any) {
   console.warn('OpenAI client initialization failed, using fallback implementation');
   useOpenAI = false;
+  openAIInitStatus = 'fallback';
+  
+  if (error && error.message) {
+    openAIErrorMessage = error.message;
+  }
   
   // This is just for development without API keys
   openai = {
@@ -119,7 +128,19 @@ export async function processNaturalLanguage(message: Message): Promise<void> {
   }
 }
 
-// Generate a response with no context (for testing)
+// Get current OpenAI API status
+export function getOpenAIStatus(): { 
+  status: 'ready' | 'fallback' | 'error',
+  message: string,
+  useOpenAI: boolean
+} {
+  return {
+    status: openAIInitStatus,
+    message: openAIErrorMessage,
+    useOpenAI
+  };
+}
+
 export async function generateResponse(prompt: string): Promise<string> {
   // If we know OpenAI isn't available or configured, use deterministic fallback responses
   if (!useOpenAI) {
@@ -146,12 +167,14 @@ export async function generateResponse(prompt: string): Promise<string> {
     });
     
     return completion.choices[0].message.content || "I'm sorry, I couldn't generate a response.";
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating response:', error);
     // After a failure, switch to fallback mode for future calls to avoid repeated failures
-    if (error.toString().includes('insufficient_quota') || error.toString().includes('rate limit')) {
+    if (error?.toString && (error.toString().includes('insufficient_quota') || error.toString().includes('rate limit'))) {
       console.warn('Switching to fallback mode due to API limits');
       useOpenAI = false;
+      openAIInitStatus = 'fallback';
+      openAIErrorMessage = error.message || 'API quota exceeded or rate limited';
     }
     return getFallbackResponse(prompt);
   }
@@ -217,13 +240,15 @@ export async function analyzeSentiment(text: string): Promise<{
       rating: Math.max(1, Math.min(5, Math.round(result.rating))),
       confidence: Math.max(0, Math.min(1, result.confidence)),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to analyze sentiment:', error);
     
     // After a failure, switch to fallback mode for future calls to avoid repeated failures
-    if (error.toString().includes('insufficient_quota') || error.toString().includes('rate limit')) {
+    if (error?.toString && (error.toString().includes('insufficient_quota') || error.toString().includes('rate limit'))) {
       console.warn('Switching to fallback mode due to API limits');
       useOpenAI = false;
+      openAIInitStatus = 'fallback';
+      openAIErrorMessage = error.message || 'API quota exceeded or rate limited';
     }
     
     return getFallbackSentiment(text);
