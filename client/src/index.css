@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+:root {
+  /* Discord color palette */
+  --discord-blurple: 235 85 242;
+  --discord-dark: 54 57 63;
+  --discord-darker: 47 49 54;
+  --discord-black: 35 39 42;
+  --discord-light: 185 187 190;
+  --discord-success: 67 181 129;
+  --discord-error: 240 71 71;
+  --discord-warning: 250 166 26;
+}
+
+/* Apply discord theme colors */
+.bg-discord-blurple {
+  background-color: rgb(88, 101, 242);
+}
+.bg-discord-dark {
+  background-color: rgb(54, 57, 63);
+}
+.bg-discord-darker {
+  background-color: rgb(47, 49, 54);
+}
+.bg-discord-black {
+  background-color: rgb(35, 39, 42);
+}
+.text-discord-light {
+  color: rgb(185, 187, 190);
+}
+.text-discord-success {
+  color: rgb(67, 181, 129);
+}
+.text-discord-error {
+  color: rgb(240, 71, 71);
+}
+.text-discord-blurple {
+  color: rgb(88, 101, 242);
+}
+.bg-discord-success {
+  background-color: rgb(67, 181, 129);
+}
+.bg-discord-error {
+  background-color: rgb(240, 71, 71);
+}
+.bg-discord-warning {
+  background-color: rgb(250, 166, 26);
+}
