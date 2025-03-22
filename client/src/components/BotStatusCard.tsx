@@ -64,7 +64,7 @@ const BotStatusCard: React.FC = () => {
   };
 
   const toggleBot = () => {
-    if (data?.status?.ready) {
+    if (data?.bot?.ready) {
       stopBotMutation.mutate();
     } else {
       startBotMutation.mutate();
@@ -74,6 +74,11 @@ const BotStatusCard: React.FC = () => {
   const isOnline = data?.bot?.ready;
   const functionality = data?.bot?.functionality || 'unknown';
   const limitations = data?.bot?.limitations || [];
+  
+  const nlpStatus = data?.nlp?.status || 'unknown';
+  const nlpMessage = data?.nlp?.message || '';
+  const nlpActive = data?.nlp?.active || false;
+  
   const cpuUsage = data?.systemInfo?.cpuUsage || 0;
   const memoryUsage = data?.systemInfo?.memoryUsage || 0;
   const apiRateLimit = data?.systemInfo?.apiRateLimit || 0;
@@ -90,6 +95,59 @@ const BotStatusCard: React.FC = () => {
             {isOnline ? 'Online' : 'Offline'}
           </span>
         </div>
+        
+        {isOnline && (
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium text-gray-300">Functionality</span>
+            <span className={`px-2 py-1 text-xs rounded-full ${
+              functionality === 'full' 
+                ? 'bg-green-900 text-green-300' 
+                : 'bg-yellow-900 text-yellow-300'
+            }`}>
+              {functionality === 'full' ? 'Full Access' : 'Limited Access'}
+            </span>
+          </div>
+        )}
+        
+        {isOnline && functionality === 'limited' && limitations.length > 0 && (
+          <div className="mb-4 p-2 bg-gray-800 rounded border border-yellow-900">
+            <p className="text-xs text-yellow-300 mb-1">Limited functionality:</p>
+            <ul className="text-xs text-gray-400 list-disc pl-4">
+              {limitations.map((limitation, index) => (
+                <li key={index}>{limitation}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-medium text-gray-300">OpenAI API</span>
+          <span className={`px-2 py-1 text-xs rounded-full ${
+            nlpStatus === 'active' 
+              ? 'bg-green-900 text-green-300' 
+              : nlpStatus === 'fallback' 
+                ? 'bg-yellow-900 text-yellow-300'
+                : 'bg-red-900 text-red-300'
+          }`}>
+            {nlpStatus === 'active' 
+              ? 'Active' 
+              : nlpStatus === 'fallback' 
+                ? 'Fallback Mode' 
+                : 'Error'}
+          </span>
+        </div>
+        
+        {nlpStatus !== 'active' && nlpMessage && (
+          <div className="mb-4 p-2 bg-gray-800 rounded border border-yellow-900">
+            <p className="text-xs text-yellow-300 mb-1">AI Status:</p>
+            <p className="text-xs text-gray-400">{nlpMessage}</p>
+            <p className="text-xs text-gray-400 mt-2">
+              {nlpStatus === 'fallback' 
+                ? 'The bot will use simplified responses.' 
+                : 'AI features are unavailable.'}
+            </p>
+          </div>
+        )}
         
         <div className="space-y-4">
           <div>
