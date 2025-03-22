@@ -5,7 +5,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { startBot, stopBot, getBotStatus } from "./bot/index";
 import { getAllCommands } from "./bot/commands";
-import { generateResponse } from "./bot/nlp";
+import { generateResponse, getOpenAIStatus } from "./bot/nlp";
 import { moderateUser } from "./bot/moderation";
 import { insertApiIntegrationSchema, insertBotSettingsSchema } from "@shared/schema";
 
@@ -61,10 +61,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get bot status
   app.get('/api/status', async (req: Request, res: Response) => {
-    const status = getBotStatus();
+    const botStatus = getBotStatus();
+    const openaiStatus = getOpenAIStatus();
     
     res.json({
-      status,
+      bot: botStatus,
+      nlp: {
+        status: openaiStatus.status,
+        message: openaiStatus.message,
+        active: openaiStatus.useOpenAI
+      },
       systemInfo: {
         cpuUsage: 28, // Mock value, would need actual system monitoring
         memoryUsage: 25, // Mock value, would need actual system monitoring

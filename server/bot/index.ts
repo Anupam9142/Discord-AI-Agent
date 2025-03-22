@@ -5,15 +5,31 @@ import { getContext, updateContext } from './context';
 import { moderateMessage } from './moderation';
 import { storage } from '../storage';
 
-// Initialize Discord client with necessary intents
-export const client = new Client({
+// Create Discord clients with different intent levels
+// Full client with privileged intents (needs special access in Discord Developer Portal)
+const fullIntentClient = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent, // Privileged intent - must be enabled in Discord Developer Portal
+    GatewayIntentBits.GuildMembers,   // Privileged intent - must be enabled in Discord Developer Portal
   ],
+  rest: { timeout: 25000, retries: 3 }
 });
+
+// Reduced client without privileged intents (limited functionality but will work without special access)
+const reducedIntentClient = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    // Note: Without MessageContent intent, bot can't read message content
+    // Note: Without GuildMembers intent, bot can't access member details
+  ],
+  rest: { timeout: 25000, retries: 3 }
+});
+
+// Default to the full intent client
+export let client = fullIntentClient;
 
 // Command prefix
 const PREFIX = '!';
@@ -116,9 +132,12 @@ export function startBot() {
     if (error.code === 'TokenInvalid') {
       console.error('Invalid Discord Bot Token provided. Please check your DISCORD_BOT_TOKEN environment variable.');
       console.error('You can obtain a valid token from the Discord Developer Portal: https://discord.com/developers/applications');
-    } else if (error.code === 'DisallowedIntents') {
+    } else if (error.code === 'DisallowedIntents' || error.message?.includes('disallowed intents')) {
       console.error('Discord bot failed to start due to insufficient privileged intents.');
-      console.error('Please make sure privileged intents are enabled in the Discord Developer Portal for your bot.');
+      console.error('Please make sure these privileged intents are enabled in the Discord Developer Portal for your bot:');
+      console.error('- MESSAGE CONTENT INTENT');
+      console.error('- SERVER MEMBERS INTENT');
+      console.error('You can enable them at: https://discord.com/developers/applications');
     } else {
       console.error('Failed to start Discord bot:', error);
     }
