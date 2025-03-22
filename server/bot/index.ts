@@ -44,28 +44,50 @@ client.on(Events.MessageCreate, async (message: Message) => {
     // Store or update user in our database
     await ensureUserExists(message);
 
-    // Check if message is a command (starts with prefix)
-    if (message.content.startsWith(PREFIX)) {
-      await handleCommand(message, PREFIX);
-      return;
-    }
-
-    // Check if moderation is needed
-    const botSettings = await storage.getBotSettings();
-    if (botSettings?.autoModeration) {
-      const moderationResult = await moderateMessage(message);
-      if (moderationResult.action) {
-        // Message was moderated, no need to process further
+    // Check if this is the reduced intent client (doesn't have message content access)
+    const hasMessageContentPrivilege = client.options.intents.has(GatewayIntentBits.MessageContent);
+    
+    if (hasMessageContentPrivilege) {
+      // Full functionality with privileged intents
+      
+      // Check if message is a command (starts with prefix)
+      if (message.content.startsWith(PREFIX)) {
+        await handleCommand(message, PREFIX);
         return;
       }
-    }
 
-    // Process as natural language if the bot was mentioned or in a DM channel
-    const isMentioned = message.mentions.has(client.user!.id);
-    const isDM = message.channel.isDMBased();
-    
-    if (isMentioned || isDM) {
-      await processNaturalLanguage(message);
+      // Check if moderation is needed
+      const botSettings = await storage.getBotSettings();
+      if (botSettings?.autoModeration) {
+        const moderationResult = await moderateMessage(message);
+        if (moderationResult.action) {
+          // Message was moderated, no need to process further
+          return;
+        }
+      }
+
+      // Process as natural language if the bot was mentioned or in a DM channel
+      const isMentioned = message.mentions.has(client.user!.id);
+      const isDM = message.channel.isDMBased();
+      
+      if (isMentioned || isDM) {
+        await processNaturalLanguage(message);
+      }
+    } else {
+      // Reduced functionality without privileged intents
+      // Without MESSAGE_CONTENT intent, we can only respond to mentions or DMs
+      // But we can't read message content, so we provide limited help
+      
+      const isMentioned = message.mentions.has(client.user!.id);
+      const isDM = message.channel.isDMBased();
+      
+      if (isMentioned || isDM) {
+        await message.reply(
+          "Hi there! I'm currently running with limited permissions. " +
+          "I can see that you mentioned me, but I can't read message content due to Discord's privacy rules. " +
+          "Please ask your server admin to enable the 'MESSAGE CONTENT INTENT' for me in the Discord Developer Portal."
+        );
+      }
     }
   } catch (error) {
     console.error('Error processing message:', error);
@@ -138,6 +160,20 @@ export function startBot() {
       console.error('- MESSAGE CONTENT INTENT');
       console.error('- SERVER MEMBERS INTENT');
       console.error('You can enable them at: https://discord.com/developers/applications');
+      
+      // Fall back to reduced intent client
+      console.log('Attempting to connect with reduced intent client (limited functionality)...');
+      
+      // Switch to reduced intent client
+      client = reducedIntentClient;
+      
+      // Retry with reduced intent client
+      client.login(token).then(() => {
+        console.log(`Discord bot connected with reduced functionality as ${client.user?.tag}`);
+        console.log('Note: Some features like reading message content will not work without privileged intents');
+      }).catch(reducedError => {
+        console.error('Failed to connect even with reduced intents:', reducedError);
+      });
     } else {
       console.error('Failed to start Discord bot:', error);
     }
